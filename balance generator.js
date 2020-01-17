@@ -1,7 +1,7 @@
 // Add menu button.
 function onOpen() {
     var ui = SpreadsheetApp.getUi();
-    ui.createMenu("747 Custom Stuff").addItem("Generate Balances", 'generateBalances').addItem("Sort Sheet", 'sortSpreadsheet').addToUi();
+    ui.createMenu("747 Custom Stuff").addItem("Generate Balances", 'generateBalances').addToUi();
 }
 
 // Sorts Expenses and Payments sheets.
@@ -77,4 +77,6 @@ function generateBalances() {
     balances_sheet.getRange('E2').setValue(balances[ROHAN][TOM] - balances[TOM][ROHAN]);
     balances_sheet.getRange('E3').setValue(balances[MICHAEL][TOM] - balances[TOM][MICHAEL]);
     balances_sheet.getRange('E4').setValue(balances[MARCUS][TOM] - balances[TOM][MARCUS]);
+    
+    sortSpreadsheet()
 }
