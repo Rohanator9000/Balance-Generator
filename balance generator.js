@@ -1,7 +1,7 @@
 // Add menu button.
 function onOpen() {
     var ui = SpreadsheetApp.getUi();
-    ui.createMenu("747 Custom Stuff").addItem("Generate Balances", 'generateBalances').addToUi();
+    ui.createMenu("424 Landfair Scripts").addItem("Generate Balances", 'generateBalances').addToUi();
 }
 
 // Sorts Expenses and Payments sheets.
@@ -22,9 +22,9 @@ function generateBalances() {
     // Constants to index balances matrix.
     const ROHAN = 0;
     const MICHAEL = 1;
-    const TOM = 2;
+    const SARAH = 2;
     const MARCUS = 3;
-    var name_to_index = { "Marcus": MARCUS, "Rohan": ROHAN, "Michael": MICHAEL, "Tom": TOM }
+    var name_to_index = { "Marcus": MARCUS, "Rohan": ROHAN, "Michael": MICHAEL, "Sarah": SARAH }
 
     // Access Expenses data.
     var spreadsheet = SpreadsheetApp.getActive();
@@ -74,9 +74,9 @@ function generateBalances() {
     balances_sheet.getRange('C2').setValue(balances[ROHAN][MICHAEL] - balances[MICHAEL][ROHAN]);
     balances_sheet.getRange('D2').setValue(balances[ROHAN][MARCUS] - balances[MARCUS][ROHAN]);
     balances_sheet.getRange('D3').setValue(balances[MICHAEL][MARCUS] - balances[MARCUS][MICHAEL]);
-    balances_sheet.getRange('E2').setValue(balances[ROHAN][TOM] - balances[TOM][ROHAN]);
-    balances_sheet.getRange('E3').setValue(balances[MICHAEL][TOM] - balances[TOM][MICHAEL]);
-    balances_sheet.getRange('E4').setValue(balances[MARCUS][TOM] - balances[TOM][MARCUS]);
-    
+    balances_sheet.getRange('E2').setValue(balances[ROHAN][SARAH] - balances[SARAH][ROHAN]);
+    balances_sheet.getRange('E3').setValue(balances[MICHAEL][SARAH] - balances[SARAH][MICHAEL]);
+    balances_sheet.getRange('E4').setValue(balances[MARCUS][SARAH] - balances[SARAH][MARCUS]);
+
     sortSpreadsheet()
 }
