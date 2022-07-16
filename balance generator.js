@@ -1,116 +1,92 @@
-// Add menu button.
 function onOpen() {
-    const ui = SpreadsheetApp.getUi();
-    ui.createMenu("424 Landfair Scripts").addItem("Generate Balances", 'generateBalances').addToUi();
+	// Add menu button when sheet is opened.
+	SpreadsheetApp.getUi()
+		.createMenu("345 Sheridan Scripts")
+		.addItem("Generate Balances", "main")
+		.addToUi();
 }
 
-// Sorts Expenses and Payments sheets.
-function sortSpreadsheet() {
-    const spreadsheet = SpreadsheetApp.getActive();
-    spreadsheet.getSheetByName('Expenses').sort(1);
-    spreadsheet.getSheetByName('Payments').sort(1);
+function sortSpreadsheet(expensesSheet, paymentsSheet) {
+	expensesSheet.sort(1);
+	paymentsSheet.sort(1);
 }
 
-function generateBalances() {
-    // 2d array to hold current balances. JavaScript is annoying.
-    // i owes j $(balances[i][j])
-    const balances = new Array(4);
-    for (var i = 0; i < 4; ++i) {
-        balances[i] = [0, 0, 0, 0];
-    }
+function getDisplayMessage(rOwesM) {
+	// Round to 2 decimal places.
+	const rounded = Math.round(rOwesM * 100) / 100;
 
-    // Constants to index balances matrix.
-    const ROHAN = 0;
-    const MICHAEL = 1;
-    const SARAH = 2;
-    const MARCUS = 3;
-    const name_to_index = { "Marcus": MARCUS, "Rohan": ROHAN, "Michael": MICHAEL, "Sarah": SARAH }
+	let message = "Current Status: ";
 
-    // Access Expenses data.
-    const spreadsheet = SpreadsheetApp.getActive();
-    const expenses_sheet = spreadsheet.getSheetByName('Expenses');
-    const expenses_data = expenses_sheet.getDataRange().getValues();
+	if (rounded > 0) {
+		message += `Rohan owes Marcus $${rounded}.`;
+	} else if (rounded < 0) {
+		message += `Marcus owes Rohan $${-rounded}.`;
+	} else {
+		message += "No money is owed.";
+	}
 
-    // Loop through expenses.
-    for (var i = 1; i < expenses_data.length; ++i) {
-        const row = expenses_data[i];
-        const purchaser_index = name_to_index[row[2]];
-        const cost = row[3];
+	return message;
+}
 
-        // Compute cost per person.
-        let num_of_purchasers = 0;
-        for (let j = 4; j <= 7; ++j) {
-            if (row[j] == "*") {
-                ++num_of_purchasers;
-            }
-        }
-        var per_person = cost / num_of_purchasers;
+function getExpensesBalance(expensesData) {
+	let rOwesM = 0;
 
-        // Update balances per person.
-        for (let j = 4; j <= 7; ++j) {
-            if (row[j] == "*") {
-                balances[j - 4][purchaser_index] += per_person;
-            }
-        }
-    }
+	// Skip first row because it's a header row.
+	for (const expenseRow of expensesData.slice(1)) {
+		const purchaser = expenseRow[2];
+		const cost = expenseRow[3];
+		const costIsSplit = expenseRow[4];
+		const amountToPay = costIsSplit ? cost / 2 : cost;
 
-    // Access Payments data.
-    const payments_sheet = spreadsheet.getSheetByName('Payments');
-    const payments_data = payments_sheet.getDataRange().getValues();
+		if (purchaser === "Rohan") {
+			rOwesM -= amountToPay;
+		} else if (purchaser === "Marcus") {
+			rOwesM += amountToPay;
+		} else if (purchaser === "" && cost === "") {
+			// Reached empty row. Required for this sheet due to checkboxes.
+			break;
+		} else {
+			throw Error(`Incorrect purchaser in Expenses page: ${purchaser}.`);
+		}
+	}
 
-    // Loop through payments.
-    for (let i = 1; i < payments_data.length; ++i) {
-        const row = payments_data[i];
-        const sender_index = name_to_index[row[1]];
-        const receiver_index = name_to_index[row[2]];
-        const amount = row[4];
-        balances[receiver_index][sender_index] += amount;
-    }
+	return rOwesM;
+}
 
-    // Access Balances sheet.
-    const balances_sheet = spreadsheet.getSheetByName('Balances');
+function getPaymentsBalance(paymentsData) {
+	let rOwesM = 0;
 
-    // Update Balances Sheet.
-    balances_sheet.getRange('C2').setValue(balances[ROHAN][MICHAEL] - balances[MICHAEL][ROHAN]);
-    balances_sheet.getRange('D2').setValue(balances[ROHAN][MARCUS] - balances[MARCUS][ROHAN]);
-    balances_sheet.getRange('D3').setValue(balances[MICHAEL][MARCUS] - balances[MARCUS][MICHAEL]);
-    balances_sheet.getRange('E2').setValue(balances[ROHAN][SARAH] - balances[SARAH][ROHAN]);
-    balances_sheet.getRange('E3').setValue(balances[MICHAEL][SARAH] - balances[SARAH][MICHAEL]);
-    balances_sheet.getRange('E4').setValue(balances[MARCUS][SARAH] - balances[SARAH][MARCUS]);
+	// Skip first row because it's a header row.
+	for (const paymentRow of paymentsData.slice(1)) {
+		const senderName = paymentRow[1];
+		const amount = paymentRow[2];
 
-    const messages = [];
+		if (senderName === "Rohan") {
+			rOwesM -= amount;
+		} else if (senderName === "Marcus") {
+			rOwesM += amount;
+		} else {
+			throw Error(
+				`Incorrect sender name in Payments page: ${senderName}.`
+			);
+		}
+	}
 
-    // const names = { MARCUS, ROHAN, MICHAEL, SARAH }
-    const names = [ "Marcus", "Rohan", "Michael", "Sarah" ]
+	return rOwesM;
+}
 
-    for (let i = 0; i < names.length-1; ++i) {
-        for (let j = i+1; j < names.length; ++j) {
-            const name1 = names[i];
-            const name2 = names[j];
+function main() {
+	const spreadsheet = SpreadsheetApp.getActive();
+	const expensesSheet = spreadsheet.getSheetByName("Expenses");
+	const paymentsSheet = spreadsheet.getSheetByName("Payments");
 
-            const val1 = name_to_index[name1]
-            const val2 = name_to_index[name2]
+	const expensesData = expensesSheet.getDataRange().getValues();
+	const paymentsData = paymentsSheet.getDataRange().getValues();
 
-            const p1_owes_p2 = balances[val1][val2] - balances[val2][val1];
+	const rOwesM =
+		getExpensesBalance(expensesData) + getPaymentsBalance(paymentsData);
+	const displayMessage = getDisplayMessage(rOwesM);
+	expensesSheet.getRange("G1").setValue(displayMessage);
 
-            if (p1_owes_p2 != 0){
-                let message = "!!!";
-                const money = Number(p1_owes_p2).toFixed(2);
-                if (p1_owes_p2 > 0) {
-                    message = `${name1} owes ${name2} $${money}.`
-                } else {
-                    message = `${name2} owes ${name1} $${-money}.`
-                }
-
-                messages.push(message);
-            }
-        }
-    }
-
-    const new_balances_sheet = spreadsheet.getSheetByName('Balances 2.0');
-    for (let i = 0; i < messages.length; ++i) {
-        new_balances_sheet.getRange(`A${i+1}`).setValue(messages[i]);
-    }
-
-    sortSpreadsheet()
+	sortSpreadsheet(expensesSheet, paymentsSheet);
 }
